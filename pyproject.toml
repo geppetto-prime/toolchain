@@ -1,0 +1,17 @@
+[tool.poetry]
+name = "toolchain"
+version = "0.6.9"
+description = "Bundle related `tool` logic and functionality into easy to use toolchains for `Chainlit`."
+authors = ["Zac <2215540+zboyles@users.noreply.github.com>"]
+readme = "README.md"
+packages = [{include = "toolchain", from = "src"}]
+
+[tool.poetry.dependencies]
+python = "^3.11,<3.12"
+chainlit = {version = "^1.0.0rc3", allow-prereleases = true}
+replicate = "^0.22.0"
+
+
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
