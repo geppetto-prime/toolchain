@@ -1,4 +1,4 @@
-
+"""This module contains the types used by the toolchains."""
 import json
 import re
 import asyncio
@@ -22,7 +22,7 @@ from dataclasses_json.core import (Json, _ExtendedEncoder, _asdict,
 
 from chainlit import Action, Audio, Image, Video, File, Message, Step
 from chainlit.element import Element, ElementType, ElementDisplay, ElementSize
-from chainlit.input_widget import InputWidget, Select, Slider, NumberInput
+from chainlit.input_widget import InputWidget, Select, Slider, NumberInput, TextInput, Tags, Switch
 from chainlit.types import InputWidgetType
 
 
@@ -70,16 +70,32 @@ class ParsedReplicatePredictionLog(DataClassJsonMixinPro):
     total_steps_again: Optional[str] = dataclasses.field(default=None)
     
 
-@dataclass
-class ReplicatePredictionNotification(DataClassJsonMixinPro):
-    id: Optional[str] = dataclasses.field(default=None)
-    status: Optional[ReplicatePredictionStatus] = dataclasses.field(default=None)
-    percent_complete: Optional[int] = dataclasses.field(default=0)
-    output: Optional[str] = dataclasses.field(default=None)
+# @dataclass
+# class ReplicatePredictionNotification(DataClassJsonMixinPro):
+#     """
+#     Represents a notification for a replicated prediction.
+
+#     Attributes:
+#         id (Optional[str]): The ID of the notification.
+#         status (Optional[ReplicatePredictionStatus]): The status of the replicated prediction.
+#         percent_complete (Optional[int]): The percentage of completion for the replicated prediction.
+#         output (Optional[str]): The output of the replicated prediction.
+#     """
+#     id: Optional[str] = dataclasses.field(default=None)
+#     status: Optional[ReplicatePredictionStatus] = dataclasses.field(default=None)
+#     percent_complete: Optional[int] = dataclasses.field(default=0)
+#     output: Optional[str] = dataclasses.field(default=None)
 
 
 @dataclass
 class ImageToolchainTemplates:
+    """
+    A class that represents the templates used in the image toolchain.
+
+    Attributes:
+        unsafe_html (bool): Flag indicating whether unsafe HTML is allowed.
+     """
+
     unsafe_html: bool = dataclasses.field(default=True)
     _FILE_NAME_TEMPLATE_UNSAFE_HTML: Optional[str] = dataclasses.field(default="{PREFIX}_{TIMESTAMP}{EXT}", init=False, kw_only=True)
     _FILE_NAME_TEMPLATE_SAFE_HTML: Optional[str] = dataclasses.field(default="{PREFIX}_{TIMESTAMP}{EXT}", init=False, kw_only=True)
@@ -89,24 +105,65 @@ class ImageToolchainTemplates:
     _CREATING_COUNT_VIDEOS_FROM_TEMPLATE_SAFE_HTML: Optional[str] = dataclasses.field(default="**Creating {COUNT} video{PLURAL} from:**\n{IMAGE_NAME}", init=False, kw_only=True)
     _DOWNLOAD_FILE_MARKDOWN_TEMPLATE_UNSAFE_HTML: Optional[str] = dataclasses.field(default="""**Video generation complete.**\nDownload [{FILE_NAME}]({FILE_URL})""", init=False, kw_only=True)
     _DOWNLOAD_FILE_MARKDOWN_TEMPLATE_SAFE_HTML: Optional[str] = dataclasses.field(default="""**Video generation complete.**\nDownload [{FILE_NAME}]({FILE_URL})""", init=False, kw_only=True)
+
     @property
     def FILE_NAME_TEMPLATE(self) -> str:
+        """Get the file name template based on the safety of HTML.
+
+        Returns:
+            str: The file name template."""
         return self._FILE_NAME_TEMPLATE_UNSAFE_HTML if self.unsafe_html else self._FILE_NAME_TEMPLATE_SAFE_HTML
+
     @property
     def CREATE_VIDEO_FROM_TEMPLATE(self) -> str:
+        """Get the template for options for creating videos based on the safety of HTML.
+
+        Returns:
+            str: The template for options for creating videos."""
         return self._CREATE_VIDEO_FROM_TEMPLATE_UNSAFE_HTML if self.unsafe_html else self._CREATE_VIDEO_FROM_TEMPLATE_SAFE_HTML
+
     @property
     def CREATING_COUNT_VIDEOS_FROM_TEMPLATE(self) -> str:
+        """Get the template for creating count videos based on the safety of HTML.
+
+        Returns:
+            str: The template for creating count videos."""
         return self._CREATING_COUNT_VIDEOS_FROM_TEMPLATE_UNSAFE_HTML if self.unsafe_html else self._CREATING_COUNT_VIDEOS_FROM_TEMPLATE_SAFE_HTML
+
     @property
     def DOWNLOAD_FILE_MARKDOWN_TEMPLATE(self) -> str:
+        """Get the template for downloading files based on the safety of HTML.
+
+        Returns:
+            str: The template for downloading files."""
         return self._DOWNLOAD_FILE_MARKDOWN_TEMPLATE_UNSAFE_HTML if self.unsafe_html else self._DOWNLOAD_FILE_MARKDOWN_TEMPLATE_SAFE_HTML
 
 
+@dataclass
+class StableDiffusionVideoParamsMetadata:
+    description: str = dataclasses.field(default="")
+    tooltip: str = dataclasses.field(default="")
+    values: List[str] = dataclasses.field(default_factory=list)
+    type: InputWidgetType = dataclasses.field(default="text")
+    ge: Optional[int] = dataclasses.field(default=None)
+    le: Optional[int] = dataclasses.field(default=None)
 
 
 @dataclass(config=ConfigDict(arbitrary_types_allowed=True))
 class StableDiffusionVideoParams(DataClassJsonMixinPro):
+    """
+    Represents the parameters for generating a stable diffusion video.
+
+    Attributes:
+        video_length (StableDiffusionVideo_VideoLength): The length of the video to generate.
+        sizing_strategy (StableDiffusionVideo_SizingStrategy): The sizing strategy to use when generating the video.
+        frames_per_second (int): The number of frames per second to use in the video.
+        motion_bucket_id (int): The motion bucket id to use when generating the video.
+        cond_aug (float): The conditional augmentation (cond aug) to use when generating the video.
+        decoding_t (int): The decoding t to use when generating the video.
+        seed (Optional[int]): The seed to use when generating the video.
+        input_image (Optional[Union[str, TextIO, bytes, BinaryIO, Any]]): The input image to use when generating the video.
+    """
     video_length: StableDiffusionVideo_VideoLength = dataclasses.field(
         default="25_frames_with_svd_xt",
         metadata={
@@ -175,17 +232,92 @@ class StableDiffusionVideoParams(DataClassJsonMixinPro):
             "description": "The input image to use when generating the video.",
         },
     )
+    def input_widgets(self) -> List[InputWidget]:
+        metadatas: Mapping[str, dict] = self.fields_metadata()
+        widgets: List[InputWidget] = []
+        for key in metadatas.keys():
+            print(key, end=": ")
+            metadata = metadatas.get(key, {})
+            description = metadata.get('description', '')
+            tooltip = metadata.get('tooltip', '')
+            widget_type: InputWidgetType = metadata.get('type', '')
+            values = metadata.get('values', [])
+            initial = self.field_lookup(key).default
+            max = metadata.get('ge', None)
+            min = metadata.get('le', None)
+            print(initial, end="; ")
+            if widget_type == "select":
+                widget = Select(
+                    id=key,
+                    label=key,
+                    initial=initial,
+                    tooltip=tooltip,
+                    description=description,
+                    values=values,
+                    initial_value=initial,
+                )
+            elif widget_type == "slider":
+                widget = Slider(
+                    id=key,
+                    label=key,
+                    initial=initial,
+                    tooltip=tooltip,
+                    description=description,
+                    min=min,
+                    max=max,
+                )
+            elif widget_type == "numberinput":
+                widget = NumberInput(
+                    id=key,
+                    label=key,
+                    initial=initial,
+                    tooltip=tooltip,
+                    description=description,
+                )
+            elif widget_type == "textinput":
+                widget = TextInput(
+                    id=key,
+                    label=key,
+                    initial=initial,
+                    tooltip=tooltip,
+                    description=description,
+                )
+            elif widget_type == "switch":
+                widget = Switch(
+                    id=key,
+                    label=key,
+                    initial=initial,
+                    tooltip=tooltip,
+                    description=description,
+                )
+            elif widget_type == "tags":
+                widget = Tags(
+                    id=key,
+                    label=key,
+                    initial=initial or [],
+                    tooltip=tooltip,
+                    description=description,
+                    values=values or [],
+                )
+            if widget:
+                widgets.append(widget)
+        return widgets
 
 
 
 @dataclass
 class StableDiffusionVideoResponseUrls:
+    """
+    Represents the response URLs for a stable diffusion video.
+    """
     get: Optional[str] = Field("")
     cancel: Optional[str] = Field("")
 
 
 @dataclass
 class StableDiffusionVideoResponse:
+    """Represents the response object for a stable diffusion video."""
+
     id: str = Field("")
     replicate_model: str = Field(STABLE_DIFFUSION_VIDEO)
     input: StableDiffusionVideoParams = Field(StableDiffusionVideoParams())
@@ -201,10 +333,18 @@ class StableDiffusionVideoResponse:
     
     @property
     def model(self) -> str:
+        """Get the model name from the replicate_model attribute.
+
+        Returns:
+            str: The model name."""
         return self.replicate_model.split(":").pop(0)
     
     @property
     def version(self) -> str:
+        """Get the version from the replicate_model attribute.
+
+        Returns:
+            str: The version."""
         return self.replicate_model.split(":").pop()
 
 

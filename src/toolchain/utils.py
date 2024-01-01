@@ -1,4 +1,4 @@
-
+"""Utility functions for the toolchain."""
 import aiofiles
 import re
 import json
@@ -26,6 +26,24 @@ def resize_images(message: Message, size: ElementSize = "small") -> Message:
 
 
 SafeInt = TypeVar('SafeInt', int, str, None)
+from typing import Optional
+
+def safe_int_parse(value, default: Optional[int]=None) -> int:
+    """
+    Safely parses the given value into an integer.
+
+    Args:
+        value: The value to be parsed.
+        default: The default value to be returned if parsing fails. Defaults to None.
+
+    Returns:
+        The parsed integer value if successful, otherwise the default value.
+
+    """
+    try:
+        return int(value)
+    except (ValueError, TypeError):
+        return default
 def safe_int_parse(value, default: Optional[SafeInt]=None) -> SafeInt:
     try:
         return int(value)
@@ -37,10 +55,12 @@ def parse_replicate_prediction_log(id: str, log_text: str, status: Optional[Repl
     """Extracts data segments from the log text using regex patterns.
 
     Args:
-      log_text: The log text to extract data from.
+      id (str): The ID of the replicate prediction log.
+      log_text (str): The log text to extract data from.
+      status (Optional[ReplicatePredictionStatus], optional): The status of the replicate prediction. Defaults to "starting".
 
     Returns:
-      A dictionary containing the extracted data segments.
+      dict: A dictionary containing the extracted data segments.
     """
     from toolchain.types import ReplicatePredictionStatus, ParsedReplicatePredictionLog
     
@@ -134,7 +154,15 @@ def progress_bar_simple(
     progress_header_fn: Optional[Callable[[int], str]] = None,
 ) -> str:
     """Returns a simple progress bar.
-    `progress_percentage` is the percentage completion of the task (0-100)."""
+
+    Args:
+        progress_percentage (int): The percentage completion of the task (0-100).
+        progress_label_fn (Optional[Callable[[int], str]], optional): A function that generates the label for the progress bar based on the progress percentage. Defaults to lambda progress: f"{progress}%".
+        progress_header_fn (Optional[Callable[[int], str]], optional): A function that generates the header for the progress bar based on the progress percentage. Defaults to None.
+
+    Returns:
+        str: The HTML representation of the progress bar.
+    """
     # Ensure the percentage is within 0-100 range
     progress_percentage = max(0, min(100, progress_percentage))
 
@@ -151,7 +179,18 @@ def progress_bar_simple(
 
 
 async def progress_bar_simple_test(sleepfn: Callable[[int], None], seconds: int = 5, only_percent: bool = False):
-    """Tests the progress bar."""
+    """
+    Tests the progress bar.
+
+    Args:
+        sleepfn (Callable[[int], None]): A function that sleeps for a given number of seconds.
+        seconds (int, optional): The total number of seconds for the progress bar. Defaults to 5.
+        only_percent (bool, optional): If True, only yields the calculated percentage. If False, yields the progress bar string. Defaults to False.
+
+    Yields:
+        int or str: The calculated percentage or the progress bar string.
+
+    """
     for i in range(seconds):
         calc_percent = int((i / seconds) * 100)
         if only_percent:
@@ -196,6 +235,19 @@ def progress_bar_simple_markdown(
 
 
 async def append_to_json_log(data, log_path: Union[str, Path]):
+    """
+    Appends data to a JSON log file.
+
+    Args:
+        data: The data to append to the log file.
+        log_path (Union[str, Path]): The path to the log file.
+
+    Raises:
+        None
+
+    Returns:
+        None
+    """
     log_path = Path(log_path)
     if log_path.suffix != ".json":
         print(f"Notice: `append_to_json_log` is intended to be passed a .json file but was passed a {log_path.suffix} file.")
