@@ -15,103 +15,70 @@ from toolchain.models import DataClassJsonMixinPro
 SessionToolchainType = TypeVar('SessionToolchainType', bound="SessionToolchain")
 SessionId = TypeVar('SessionId', bound=str)
 
-_session_map: MutableMapping[SessionId, Type[SessionToolchainType]] = dict()
-_session_id_map: MutableMapping[SessionId, str] = dict()
-
 class SessionToolchain:
-    _session_id: SessionId = None
-    _public_id: str = None
+    session_id: SessionId = None
+    _public_id_session_map: MutableMapping[str, SessionToolchainType] = dict()
     user_session: UserSession = None
-    context: ChainlitContext = None
     
-    def _save_session_id(self) -> None:
-        """Save a `session_id` with the current user's `public_id`."""
-        global _session_id_map
-        _session_id_map.update({self.public_id: self.session_id})
-        return None
-    
-    def _save_session(self) -> None:
-        """Save a session with the current user's `session_id`."""
-        global _session_map
-        _session_map.update({self.session_id: self})
-        return None
-    
-    def __init__(self, user_session: UserSession) -> None:
+    def __init__(
+        self,
+        user_session: UserSession,
+    ) -> None:
         self.user_session = user_session
-        self._save_session_id()
-        self._save_session()
-        context, _ = self.restore_chainlit_context(self.public_id)
-        self.context = context
+        self._on_init_save()
         return None
     
-    @property
-    def session_id(self) -> SessionId:
-        """Get the session ID from the user session."""
-        if self._session_id is None:
-            self._session_id = self.user_session.get("id", None)
-        return self._session_id
+    def _set_public_id(self, public_id: str) -> None:
+        """Manually set the public ID. Useful when restoring context from webhook."""
+        self.user_session.set("public_id", public_id)
+        return None
     
-    @property
-    def public_id(self) -> str:
+    def get_public_id(self) -> str:
         """Get the public ID."""
-        public_id = self.user_session.get("public_id", None) or self._public_id
-        if not public_id:
-            public_id = str(uuid.uuid4())
-            self.user_session.set("public_id", public_id)
-        self._public_id = public_id
-        return self._public_id
+        def generate_id() -> str:
+            return str(uuid.uuid4()).replace("-", "")
+        pid = self.user_session.get("public_id", generate_id())
+        self._set_public_id(pid)
+        return pid
+    
+    def get_session_id(self) -> SessionId:
+        """Get the session ID from the user session."""
+        return self.user_session.get("id", None)
+    
+    def _on_init_save(self, overwrite: bool = False):
+        """Save the session."""
+        public_id = self.get_public_id()
+        self.session_id = self.get_session_id()
+        if public_id not in SessionToolchain._public_id_session_map or overwrite:
+            SessionToolchain._public_id_session_map.update({public_id: self})
+        return None
     
     @staticmethod
-    def load_from_session_id(session_id: SessionId) -> Union[SessionToolchainType, None]:
-        """Return saved instance of this `SessionToolchain` from `_session_map` with `session_id`."""
-        global _session_map
-        if session_id is None:
-            # Consider raising an exception here.
+    def _load_context(session_id: SessionId) -> ChainlitContext:
+        """Load a context."""
+        ws_session = WebsocketSession.get_by_id(session_id=session_id)
+        context: ChainlitContext = init_ws_context(ws_session)
+        return context
+    
+    @classmethod
+    def _load_instance(cls: Type[SessionToolchainType], public_id: str) -> SessionToolchainType:
+        """Load a session.
+        Warning: Must also restore the `ChainlitContext` with `_load_context`."""
+        instance: SessionToolchainType = cls._public_id_session_map.get(public_id, None)
+        return instance
+    
+    @classmethod
+    def from_public_id(cls: Type[SessionToolchainType], public_id: str) -> SessionToolchainType:
+        """Restore a SessionToolchain from a public_id.
+        Required for loading a SessionToolchain from a webhook."""
+        instance: SessionToolchainType = cls._load_instance(public_id)
+        if instance is None:
+            public_ids = "; ".join(list(cls._public_id_session_map.keys()))
+            print(f"SessionToolchain {public_id} not found in:\n{public_ids}\n")
             return None
-        return _session_map.get(session_id, None)
-    
-    @staticmethod
-    def restore_session_id(public_id: str) -> Union[SessionId, None]:
-        """Restore a `session_id` from an external connection, ie webhook."""
-        global _session_id_map
-        if public_id is None:
-            # Consider raising an exception here.
-            return None
-        return _session_id_map.get(public_id, None)
-    
-    @classmethod
-    def from_public_id(cls: Type[SessionToolchainType], public_id: str) -> Union[SessionToolchainType, None]:
-        """Return saved instance of this `SessionToolchain` with `public_id`."""
-        session_id = cls.restore_session_id(public_id)
-        return cls.load_from_session_id(session_id)
-    
-    @classmethod
-    def restore_chainlit_context(cls: Type[SessionToolchainType], public_id: str) -> Tuple[Union[ChainlitContext, None], SessionId]:
-        """Restore the `Chainlit` context and the `session_id` from an external connection, ie webhook.
-
-        Args:
-            public_id (str): The public ID to load the context with.
-
-        Returns:
-            Tuple[Union[ChainlitContext, None], SessionId]: A tuple containing the context and the session ID."""
-        session_id = cls.restore_session_id(public_id)
-        context: ChainlitContext = None
-        if session_id:
-            ws_session = WebsocketSession.get_by_id(session_id=session_id)
-            context = init_ws_context(ws_session)
-        return context, session_id
-    
-    @classmethod
-    def restore_chainlit_context_session_id(cls: Type[SessionToolchainType], public_id: str) -> SessionId:
-        """Restore the `Chainlit` context and the `session_id` from an external connection, ie webhook.
-
-        Args:
-            public_id (str): The public ID to load the session from.
-
-        Returns:
-            str: The session ID."""
-        _, session_id = cls.restore_chainlit_context(public_id)
-        return session_id
+        instance._load_context(instance.session_id)
+        instance._set_public_id(public_id)
+        return instance
 
 
 

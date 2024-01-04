@@ -1,16 +1,28 @@
 [tool.poetry]
-name = "toolchain"
-version = "0.6.9"
+name = "Toolchain for Chainlit"
+version = "0.7.0"
 description = "Bundle related `tool` logic and functionality into easy to use toolchains for `Chainlit`."
 authors = ["Zac <2215540+zboyles@users.noreply.github.com>"]
 readme = "README.md"
-packages = [{include = "toolchain", from = "src"}]
+license = "Apache-2.0"
+repository = "https://github.com/geppetto-prime/toolchain"
+keywords = ["toolchain", "chainlit", "tool", "llm", "chat", "ai", "art"]
+packages = [
+    {include = "toolchain", from = "src"},
+]
+exclude = [
+    "tests/**/*",
+    "src/app.py",
+    "src/demo.py",
+]
 
 [tool.poetry.dependencies]
 python = "^3.11,<3.12"
 chainlit = {version = "^1.0.0rc3", allow-prereleases = true}
-replicate = "^0.22.0"
+replicate = {version = "^0.22.0", optional = true}
 
+[tool.poetry.extras]
+replicate = ["replicate"]
 
 [build-system]
 requires = ["poetry-core"]

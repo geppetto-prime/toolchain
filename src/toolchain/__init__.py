@@ -9,3 +9,6 @@ __all__ = [
     "ImageToolchainTemplates",
     "SessionToolchain",
 ]
+
+def __dir__():
+    return __all__
