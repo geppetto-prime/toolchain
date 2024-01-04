@@ -28,9 +28,9 @@ The toolchain is integrated with the `Chainlit` platform, providing sophisticate
 
 ---
 
-#### Example `app.py` screenshots
+### 🕸️ Example `app.py`
 
-***Step 01***
+#### ***Step 01***
 
 Send images to convert to videos.
 
@@ -41,7 +41,7 @@ Send images to convert to videos.
 
 ---
 
-***Step 02***
+#### ***Step 02***
 
 Each image is copied to the server and displayed in your `Chainlit` reply.
 
@@ -54,7 +54,7 @@ Each image is copied to the server and displayed in your `Chainlit` reply.
 
 ---
 
-***Step 03***
+#### ***Step 03***
 
 Selecting an `Action` displays information about the creation progress.
 
@@ -67,7 +67,7 @@ Selecting an `Action` displays information about the creation progress.
 
 ---
 
-***Step 04***
+#### ***Step 04***
 
 Expand "Took `n` steps" for detailed progress reporting.
 
@@ -82,13 +82,31 @@ Expand "Took `n` steps" for detailed progress reporting.
 
 ---
 
-***Step 05***
+#### ***Step 05***
 
 Enjoy *your* creations.
 
 ![Step 05](public/screenshots/step-05-crop.png)
 
 ---
+
+### 🕸️ Troubleshooting `app.py`
+
+#### ***Allow Unsafe HTML***
+
+If `unsafe_allow_html` is not set to `true` in the `.chainlit/config.toml` file and/or a custom `.css` file isn't specified, HTML will likely display instead of a progress bar as seen below. Updating `unsafe_allow_html = true` and specifying `custom_css = "/public/<custom_css_file>.css"` will resolve the issue during the next creation attempt.
+
+> **IMPORTANT READ:**
+>
+> [Why it is dangerous to render user generated html or javascript](https://stackoverflow.com/questions/19603097/why-is-it-dangerous-to-render-user-generated-html-or-javascript)
+
+![Trouble-01](public/screenshots/troubleshoot-01.png)
+
+---
+
+#### ***Hot Reload Inconsistencies***
+
+Changes to `FastAPI` endpoint code outside of `Chainlit` won't be updated, even when detected file system changes initiate a hot reload. When in doubt always stop and start the site.
 
 ### Installation and Setup
 
