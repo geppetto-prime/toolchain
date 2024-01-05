@@ -165,7 +165,8 @@ cython_debug/
 **/*.vscode
 **/*.code-workspace
 
-**/*.env
+**/*.env*
+!.env.example
 
 public/images/**/*
 

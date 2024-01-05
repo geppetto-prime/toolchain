@@ -41,23 +41,22 @@ name = "Chatbot"
 show_readme_as_default = false
 
 # Description of the app and chatbot. This is used for HTML tags.
-# description = ""
+description = "Toolchain for Chainlit"
 
 # Large size content are by default collapsed for a cleaner ui
 default_collapse_content = true
 
 # The default value for the expand messages settings.
-default_expand_messages = false
+default_expand_messages = true
 
 # Hide the chain of thought details from the user in the UI.
 hide_cot = false
 
 # Link to your github repo. This will add a github button in the UI's header.
-# github = ""
+github = "https://github.com/geppetto-prime/toolchain"
 
 # Specify a CSS file that can be used to customize the user interface.
 # The CSS file can be served from the public directory or via an external link.
-# custom_css = "/public/test.css"
 custom_css = "/public/chainlit.css"
 
 # Override default MUI light theme. (Check theme.ts)

@@ -4,7 +4,7 @@ import json
 
 from pathlib import Path
 
-from typing import Literal, Union, Optional, TypeVar, Callable
+from typing import Literal, List, Union, Optional, TypeVar, Callable
 
 from chainlit.element import ElementSize
 from chainlit.message import Message
@@ -20,6 +20,25 @@ def resize_images(message: Message, size: ElementSize = "small") -> Message:
         new_elements.append(el)
     message.elements = new_elements
     return message
+    
+from typing import List
+
+def safe_name_parse(name: str, allowed: List[str] = ['-', '_', '(', ')', '[', ']', '{', '}']) -> str:
+    """
+    Safely parse a name by removing spaces, commas, and characters not in the allowed list.
+
+    Args:
+        name (str): The name to be parsed.
+        allowed (List[str], optional): A list of allowed characters. Defaults to ['-', '_', '(', ')', '[', ']', '{', '}'].
+
+    Returns:
+        str: The parsed name.
+    """
+    trimmed_name = ""
+    for char in name.replace(" ", "_").replace(",", "").strip():
+        if char.isalnum() or char in allowed:
+            trimmed_name += char
+    return trimmed_name
 
 
 SafeInt = TypeVar('SafeInt', int, str, None)
@@ -34,7 +53,6 @@ def safe_int_parse(value, default: Optional[SafeInt]=None) -> SafeInt:
 
     Returns:
         The parsed integer value if successful, otherwise the default value.
-
     """
     try:
         return int(value)

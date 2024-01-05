@@ -24,7 +24,7 @@ from chainlit.types import InputWidgetType
 
 from toolchain.models import DataClassJsonMixinPro
 from toolchain.types import ImageToolchainTemplates
-from toolchain.utils import safe_int_parse, progress_bar_simple
+from toolchain.utils import safe_name_parse, safe_int_parse, progress_bar_simple
 from toolchain.session import SessionId, SessionToolchain
 
 CreationResponse = TypeVar('CreationResponse')
@@ -81,8 +81,9 @@ class ImageToolchain(DataClassJsonMixinPro):
     @property
     def _image_file_name(self) -> str:
         """Returns an image file name formatted with the `FILE_NAME_TEMPLATE`."""
+        prefix = self.source_image_name.removesuffix(self.source_path.suffix)
         value = self.templates.FILE_NAME_TEMPLATE.format(
-            PREFIX=self.source_image_name.removesuffix(self.source_path.suffix).replace(',', ''),
+            PREFIX=safe_name_parse(prefix),
             TIMESTAMP=self.timestamp,
             EXT=self.source_path.suffix.strip('.'),
         )
@@ -268,11 +269,7 @@ class ImageToolchain(DataClassJsonMixinPro):
     ) -> ImageToolchainType:
         """Create a new image toolchain instance from a prompt."""
         session = SessionToolchain.from_public_id(public_id=public_id)
-        prompt_trimmed = ""
-        for char in prompt.replace(" ", "_").replace(",", "").strip():
-            if char.isalnum() or char in ['-', '_', '(', ')']:
-                prompt_trimmed += char
-        image_file = f"{prompt_trimmed}.png"
+        image_file = f"{safe_name_parse(prompt)}.png"
         instance = cls(
             source_image_path=image_file,
             source_image_name=image_file,
@@ -360,12 +357,8 @@ class ImageToolchain(DataClassJsonMixinPro):
         display: Optional[ElementDisplay] = None,
     ) -> Optional[Image]:
         """Create an image element to track creations."""
-        print("Creating image element")
-        print("self.image_path.name: ", self.image_path.name)
-        print("self.image_path:", self.image_path.as_posix(), end="\n\n")
         image_element = Image(
             name=self.image_path.name,
-            # url=self.image_path.as_posix(),
             path=self.image_path.as_posix(),
             size=size or "small",
             display=display or "inline",
